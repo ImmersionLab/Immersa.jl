@@ -1,0 +1,144 @@
+# =====================================================================
+#  Immersa case file — REFERENCE TEMPLATE (every available key)
+#
+#  To start a new case:
+#    1. make a folder, e.g.  my_case/
+#    2. copy this file to    my_case/case.toml   and delete what you don't need
+#    3. run                  bin/immersa my_case/case.toml
+#       (or check it first:  bin/immersa --check my_case/case.toml)
+#
+#  Conventions
+#    * Non-dimensional units. ALL ANGLES ARE IN DEGREES.
+#    * File paths are relative to the case folder.
+#    * Keys marked (required) have no default; everything else shows its default.
+#    * Unknown or misspelled keys are an error, so typos never pass silently.
+# =====================================================================
+
+[case]
+name    = "my_case"         # default: the case folder name
+backend = "CPU"             # CPU | CUDA | AMDGPU (GPU package must be installed)
+
+[flow]
+Re         = 100.0          # (required) Reynolds number
+freestream = [1.0, 0.0]     # (required) [Ux, Uy] or [Ux, Uy, Uz]; sets 2D/3D
+ramp_time  = 0.0            # > 0: smooth start U(t) = s(2 - s) U, s = min(t / ramp_time, 1)
+# file     = "inflow.jl"    # user file defining freestream(t) -> vector
+#                           #   (overrides the values; `freestream` still sets the dimension)
+
+[grid]
+type = "uniform"            # uniform | stretched
+
+# --- type = "uniform" (FastIBPM or IBPM)
+h      = 0.02                          # (required) finest cell size
+limits = [[-1.0, 3.0], [-2.0, 2.0]]    # (required) finest-level [min, max] per axis
+levels = 1                             # multi-domain levels; each doubles the extent
+
+# --- type = "stretched" (IBPM only): uniform core + geometric growth
+# h      = 0.04                         # (required) cell size in the core
+# core   = [[-1.5, 1.5], [-1.5, 1.5]]   # (required) uniform region, must contain the bodies
+# extent = [[-30.0, 30.0], [-30.0, 30.0]] # (required) far-field box
+# growth = 1.13                         # (required) cell-growth ratio
+# max_dx = inf                          # cap on the stretched cell size
+
+# ---------------------------------------------------------------------
+# Bodies: one [[body]] block per body (double brackets, even for one body).
+# ---------------------------------------------------------------------
+[[body]]
+name    = "body1"           # used in history.csv column names; default body1, body2, ...
+model   = "rigid"           # rigid | deformable
+shape   = "cylinder"        # (required) cylinder | plate | naca4 | points_file
+spacing = 2.0               # marker spacing ds / h (not used by points_file)
+
+# --- shape = "cylinder"
+radius = 0.5                # (required)
+center = [0.0, 0.0]
+
+# --- shape = "plate" (straight line; give `center` OR `start`)
+# length = 1.0              # (required)
+# angle  = 0.0              # counter-clockwise from +x
+# center = [0.0, 0.0]       # mid-point
+# start  = [-0.5, 0.0]      # leading end instead of the mid-point
+
+# --- shape = "naca4"
+# code                 = "0012"     # (required) 4-digit NACA code
+# chord                = 1.0
+# angle_of_attack      = 0.0        # nose up
+# pivot                = 0.5        # rotation point, as a fraction of the chord...
+# center               = [0.0, 0.0] # ...placed here
+# closed_trailing_edge = false
+
+# --- shape = "points_file": your own markers
+# file   = "body.dat"       # (required) columns: x y [ds] (2D) or x y z ds (3D);
+#                           #   separated by spaces/commas; '#' starts a comment
+# closed = true             # 2D without ds: does the last point connect to the first?
+
+# --- Prescribed motion. Leave this section out for a static body.
+#   [body.motion]
+#   type = "translate"           # translate | oscillate | pitch_heave | user
+#
+#   # type = "translate":  x = x_ref + velocity t
+#   velocity = [-1.0, 0.0]       # (required)
+#
+#   # type = "oscillate":  x = x_ref + amplitude sin(2π frequency t + phase)
+#   amplitude = [1.0, 0.0]       # (required)
+#   frequency = 0.2              # (required) cycles per unit time
+#   phase     = 0.0
+#
+#   # type = "pitch_heave" (2D): heave y = H sin(2πft), pitch θ = Θ sin(2πft + phase)
+#   heave_amplitude = 0.0
+#   pitch_amplitude = 0.0        # degrees, positive counter-clockwise
+#                                #   (= nose DOWN for a body facing +x, unlike angle_of_attack)
+#   frequency       = 0.2        # (required)
+#   phase           = 90.0       # pitch leads heave by this much
+#   pivot           = [0.0, 0.0] # default: body centroid
+#
+#   # type = "user": a Julia file in the case folder defining ONE of
+#   #   rigid_motion(t[, params])   -> (; center, angle, velocity, angular_velocity)
+#   #                                  (displacement, rotation in RADIANS, and rates;
+#   #                                   omitted fields are zero)
+#   #   motion!(x, u, x_ref, t[, params])      -> overwrite positions x and velocities u
+#   #   surface_velocity!(u, x_ref, t[, params]) -> fixed body, set the surface velocity u
+#   file  = "motion.jl"          # (required)
+#   pivot = [0.0, 0.0]           # rotation point for rigid_motion; default: centroid
+#
+#     [body.motion.parameters]   # anything here reaches your function as `params`
+#     rate = 2.0                 #   e.g. params.rate
+
+# --- model = "deformable" (FastIBPM, single body, shape = "plate")
+#   [body.structure]
+#   mass                  = 0.075    # (required) per unit length
+#   bending_stiffness     = 1e-4     # (required)
+#   extensional_stiffness = 1e3      # (required)
+#   clamped               = true     # fix the first point (position and angle)
+#   initial_angle         = 0.0      # initial deflection
+
+[solver]
+formulation    = "FastIBPM" # FastIBPM (streamfunction-vorticity) | IBPM (primitive variables)
+dt             = 0.002      # (required)
+t_final        = 10.0       # (required)
+delta          = "Yang3S2"  # Yang3S | Yang3S2: discrete delta function
+ab_order       = 2          # Adams-Bashforth order for the nonlinear term
+preconditioner = "auto"     # IBPM only: auto | none | jacobi
+# coupling_tol = 1e-7       # absolute tolerance of the iterative body-coupling solve
+#                           #   (moving bodies with FastIBPM: default 1e-7, BiCGStab;
+#                           #    IBPM: default 1e-5, CG; unused for FastIBPM static bodies)
+# restart_from = "output/restart_0001000.bin"   # FastIBPM, rigid bodies
+
+[initial_condition]
+type = "none"               # none | vortex_blob (2D, FastIBPM: kicks off vortex shedding)
+# center    = [-0.75, 0.0]
+# radius    = 0.25
+# amplitude = 0.5
+
+[reference]                 # force coefficients C = F / (½ U² L)   (3D: L² as area)
+velocity = 1.0
+length   = 1.0
+
+[output]
+directory      = "output"
+history_every  = 1          # forces → history.csv and solution.h5
+snapshot_every = 100        # fields → solution.h5 (0 = never); counted from step 1
+fields         = ["omega", "u"]  # omega | u | p (p: IBPM only)
+log_every      = 100        # progress line on screen (0 = silent)
+restart_every  = 0          # checkpoint every N steps (0 = off), FastIBPM, rigid bodies
+overwrite      = true       # false: refuse to overwrite an existing solution.h5

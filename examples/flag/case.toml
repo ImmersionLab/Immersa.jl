@@ -1,0 +1,36 @@
+# Flexible flag clamped at its leading edge, Re = 1000.
+
+[case]
+name = "flag"
+
+[flow]
+Re         = 1000.0
+freestream = [1.0, 0.0]
+ramp_time  = 0.1                    # smooth start: U(t) = s(2 - s) U, s = t / ramp_time
+
+[grid]
+h      = 0.003
+limits = [[-0.2, 1.8], [-0.3, 0.3]]
+levels = 5
+
+[[body]]
+name  = "flag"
+model = "deformable"
+shape = "plate"
+length = 1.0
+start  = [0.0, 0.0]
+
+  [body.structure]
+  mass                  = 0.075
+  bending_stiffness     = 0.0001
+  extensional_stiffness = 1000.0
+  clamped               = true      # leading edge fixed
+  initial_angle         = 1.0       # degrees, initial deflection
+
+[solver]
+dt      = 0.0006
+t_final = 5.0
+
+[output]
+snapshot_every = 100
+fields         = ["omega"]

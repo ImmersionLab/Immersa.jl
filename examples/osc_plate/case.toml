@@ -1,0 +1,40 @@
+# Vertical flat plate oscillating horizontally in fluid at rest, Re = 200:
+# x(t) = x_ref + A sin(2π f t + phase).
+
+[case]
+name = "osc_plate"
+
+[flow]
+Re         = 200.0
+freestream = [0.0, 0.0]
+
+[grid]
+h      = 0.01
+limits = [[-4.0, 4.0], [-2.0, 2.0]]
+levels = 3
+
+[[body]]
+name   = "plate"
+shape  = "plate"
+length = 1.0
+angle  = 90.0                       # degrees, counter-clockwise from +x
+center = [0.0, 0.5]
+
+  [body.motion]
+  type      = "oscillate"
+  amplitude = [1.0, 0.0]
+  frequency = 0.15915494309189535   # 1 / (2π)
+  phase     = -90.0                 # degrees
+
+[solver]
+dt      = 0.001
+t_final = 12.566370614359172        # 4π: two periods
+
+[initial_condition]
+type      = "vortex_blob"
+center    = [-0.75, 0.0]
+radius    = 0.25
+amplitude = 0.5
+
+[output]
+snapshot_every = 100

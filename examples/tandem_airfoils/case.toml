@@ -1,0 +1,50 @@
+# Two NACA 0012 airfoils in tandem, Re = 500.
+#   * front airfoil: fixed at 5° angle of attack
+#   * rear airfoil:  pitching about its quarter chord, θ(t) = 15° sin(2π f t), in the
+#                    wake of the front one (gap between them: half a chord)
+# Not a validation case: it demonstrates several bodies with independent motions.
+
+[case]
+name = "tandem_airfoils"
+
+[flow]
+Re         = 500.0
+freestream = [1.0, 0.0]
+
+[grid]
+h      = 0.01
+limits = [[-1.0, 4.0], [-1.25, 1.25]]
+levels = 4
+
+[[body]]
+name            = "front"
+shape           = "naca4"
+code            = "0012"
+angle_of_attack = 5.0
+pivot           = 0.5               # mid-chord...
+center          = [0.0, 0.0]        # ...at the origin: x from -0.5 to 0.5
+
+[[body]]
+name            = "rear"
+shape           = "naca4"
+code            = "0012"
+angle_of_attack = 5.0               # mean angle
+pivot           = 0.25              # quarter chord...
+center          = [1.25, 0.0]       # ...here: x from 1.0 to 2.0
+
+  [body.motion]
+  type            = "pitch_heave"
+  pitch_amplitude = 15.0            # degrees, about `pivot` below
+  heave_amplitude = 0.0
+  frequency       = 0.5
+  phase           = 0.0
+  pivot           = [1.25, 0.0]     # quarter chord of the rear airfoil
+
+[solver]
+dt      = 0.002
+t_final = 6.0
+
+[output]
+snapshot_every = 100
+fields         = ["omega"]
+log_every      = 250
