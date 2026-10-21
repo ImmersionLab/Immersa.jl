@@ -1,0 +1,29 @@
+# NACA 0012 at 15° angle of attack, Re = 500.
+
+[case]
+name = "naca0012"
+
+[flow]
+Re         = 500.0
+freestream = [1.0, 0.0]
+
+[grid]
+h      = 0.004
+limits = [[-1.0, 1.0], [-1.0, 1.0]]
+levels = 5
+
+[[body]]
+name            = "airfoil"
+shape           = "naca4"
+code            = "0012"
+chord           = 1.0
+angle_of_attack = 15.0              # degrees, nose up
+pivot           = 0.5               # rotate about mid-chord (fraction of chord)...
+center          = [0.0, 0.0]        # ...which is placed here
+
+[solver]
+dt      = 0.001
+t_final = 20.0
+
+[output]
+snapshot_every = 10

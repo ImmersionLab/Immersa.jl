@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Run an Immersa case file.
+#
+#   bin/immersa examples/cylinder/case.toml
+#   bin/immersa --check examples/cylinder/case.toml   # validate + summary only
+#
+# Uses this repository's Julia project. Add bin/ to your PATH to call `immersa`
+# from any folder.
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+exec julia --project="$ROOT" --startup-file=no -e 'using Immersa; exit(Immersa.main(ARGS))' -- "$@"

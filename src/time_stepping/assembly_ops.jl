@@ -81,9 +81,10 @@ function Ainv(sol::CNAB, level, ::FastIBPM)
 end
 
 """
-    B_inverse_rigid(sol::CNAB{N,T,<:AbstractStaticBody})
+    B_inverse_rigid(sol::CNAB{N,T,<:Union{AbstractStaticBody,StaticGroupedBody}})
 
-Construct a precomputed coupling operator for a rigid (static) body.
+Construct a precomputed coupling operator for a rigid (static) body, or a group of
+static bodies.
 
 This function builds the body–fluid coupling matrix `B` and precomputes
 its inverse via Cholesky factorization. The returned object is a 
@@ -101,7 +102,9 @@ coupling step as `coupler.Binv(sol.f_tilde, rhs, sol)`.
 - `CNAB_Binv_Precomputed`: Callable object that efficiently applies `B⁻¹`.
 
 """
-function B_inverse_rigid(sol::CNAB{N,T,<:AbstractStaticBody}) where {N,T}
+function B_inverse_rigid(
+    sol::CNAB{N,T,<:Union{AbstractStaticBody,StaticGroupedBody}}
+) where {N,T}
     backend = get_backend(sol.f_tilde)
     n_ib = point_count(sol.prob.body)
 

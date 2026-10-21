@@ -1,0 +1,45 @@
+# Flat plate at 12° angle of attack, Re = 400, with an oscillating tangential
+# surface velocity (slot actuation) defined in actuation.jl.
+
+[case]
+name = "plate_actuation"
+
+[flow]
+Re         = 400.0
+freestream = [1.0, 0.0]
+
+[grid]
+h      = 0.005
+limits = [[-1.0, 3.0], [-2.0, 2.0]]
+levels = 5
+
+[[body]]
+name   = "plate"
+shape  = "plate"
+length = 1.0
+angle  = -12.0
+start  = [-0.5, 0.0]
+
+  [body.motion]
+  type = "user"
+  file = "actuation.jl"             # defines surface_velocity!(u, x_ref, t, params)
+
+    [body.motion.parameters]        # passed to the user function as `params`
+    amplitude = 2.0                 # U_a = σ U∞
+    frequency = 0.6
+    phase     = 0.0                 # radians
+    s_start   = 0.10                # actuated band, as a fraction of the chord
+    s_end     = 0.30
+
+[solver]
+dt      = 0.001
+t_final = 10.0
+
+[initial_condition]
+type      = "vortex_blob"
+center    = [-0.75, 0.0]
+radius    = 0.25
+amplitude = 0.5
+
+[output]
+snapshot_every = 100

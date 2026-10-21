@@ -35,52 +35,26 @@ mkpath(OUTDIR)
 
 # %%
 h = 0.005  # grid cell size
-gridlims = SA[-1.0 3.0; -2.0 2.0]
+gridlims = SA[-1.0 2.0; -1.0 1.0]
 grid = Grid(;
     h, n=@.(round(Int, (gridlims[:, 2] - gridlims[:, 1]) / h)), x0=gridlims[:, 1], levels=5
 )
 
 # %%
 L = 1.0  # plate length
-x0 = SA[-0.5, 0.0] # plate starting position
+x0 = SA[-0.25, 0.0] # plate starting position
 theta = 12 # plate angle of attack
-θ = deg2rad(-theta)
-n_ib = round(Int, L / (2 * h))  # number of immersed boundary points
-ds = L / n_ib  # arclength delta at each point
-x = [SA[x0[1]+s*cos(θ), x0[2]+s*sin(θ)] for s in range(0, L, n_ib)]
-# Tangent & chordwise coordinate per IB point
-t̂ = fill(SA[cos(θ), sin(θ)], n_ib)                # unit tangent at every point
-ŝ = collect(range(0.0, 1.0; length=n_ib))         # normalized arclength
+n_ib = 1 + round(Int, L / (2 * h))  # number of immersed boundary points (open curve: both ends)
+ds = L / (n_ib - 1)  # arclength delta at each point = spacing of range(0, L, n_ib)
 
-top_hat(ŝ; s0=0.10, s1=0.30) = (s0 <= ŝ <= s1) ? 1.0 : 0.0
-gauss(ŝ; sc=0.20, sigma_s=0.05) = exp(-0.5*((ŝ - sc)/sigma_s)^2)
-w(ŝ) = top_hat(ŝ; s0=0.10, s1=0.30)
-
-# Actuation parameters
-U∞ = 1.0                # your inflow speed in UniformFlow
-sigma = 2               # amplitude ratio
-U_a = sigma * U∞
-f_sl = 0.60               # Hz in your nondim time units
-ϕ = 0.0
-
-# Build the body with an in-place velocity callback
-body = StaticBody(
-    x, fill(ds, n_ib), (u, i_step, tnow) -> begin
-        A = U_a * sin(2π * f_sl * tnow + ϕ)
-        @inbounds @simd for j in eachindex(u)
-            u[j] = A * w(ŝ[j]) * t̂[j]   # purely tangential; normal is identically 0
-        end
+body = let
+    θ = deg2rad(-theta)
+    s = range(0, L, n_ib)
+    x = map(s) do si
+        SA[x0[1]+si*cos(θ), x0[2]+si*sin(θ)]
     end
-)
-
-# body = let
-#     θ = deg2rad(-theta)
-#     s = range(0, L, n_ib)
-#     x = map(s) do si 
-#         SA[x0[1] + si * cos(θ), x0[2] + si * sin(θ)]
-#     end
-#     StaticBody(x, fill(ds, n_ib))
-# end;
+    StaticBody(x, fill(ds, n_ib))
+end;
 
 # %%
 dt = 0.001
@@ -145,7 +119,7 @@ if isfile(soln_path)
     @info "File already exists" soln_path
 else
     h5open(soln_path, "cw") do file
-        solution(file; tf=10.0, snapshot_freq=100)
+        solution(file; tf=40.0, snapshot_freq=100)
     end
 end
 
@@ -183,8 +157,8 @@ h5open(soln_path, "r") do file
                 z';
                 aspect_ratio=:equal,
                 colormap=:bwr,
-                xlim=(-1, 2),
-                ylim=(-0.5, 0.5),
+                xlim=(-2, 15),
+                ylim=(-3, 3),
                 legend=false,
                 clim=(-ωlim, ωlim),
             )

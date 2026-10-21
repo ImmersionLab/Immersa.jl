@@ -8,6 +8,7 @@ makedocs(
     checkdocs = :none,
     pages = [
         "Home"          => "index.md",
+        "Case files"    => "case_files.md",
         "Examples"      => "examples/examples.md",
         "API Reference" => [
             "ArrayPools"         => "API/array_pools.md",

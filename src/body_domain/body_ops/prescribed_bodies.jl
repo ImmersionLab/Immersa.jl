@@ -97,6 +97,14 @@ end
 
 StaticBody(x, ds) = StaticBody(x, ds, (u, i, t) -> nothing)
 
+# TODO(known issue): the velocity callback `u` is stored but never called —
+# `update_body_points!(::BodyPoints, ::StaticBody, i, t)` is a no-op, so marker
+# velocities stay zero and surface actuation through `StaticBody` has no effect
+# (examples/plate_actuation.jl has been running an un-actuated plate). Case files
+# avoid this by driving actuation through a `MovingBody` with fixed positions.
+# Fix: call `body.u(points.u, i, t)` in that method — note that `B` would then stay
+# constant (positions don't move), so the precomputed static `B⁻¹` remains valid.
+
 """
     point_count(body::StaticBody) -> Int
 
@@ -208,20 +216,34 @@ update_body_points!(::BodyPoints, ::StaticBody, i, t) = nothing
     GroupedPrescribedBody{T<:Tuple{Vararg{AbstractPrescribedBody}}}
 
 A composite body that groups multiple `AbstractPrescribedBody` instances into a
-single body interface. Operations iterate over all contained bodies.
+single body interface. The markers of the sub-bodies are stored back to back, in
+tuple order: sub-body `k` owns the slice `body_ranges(body)[k]` of the marker arrays,
+and every operation on it acts on that slice only.
+
+A group in which **every** sub-body is static (`AbstractStaticBody`) is treated as
+static by the solver (precomputed `B⁻¹`, no per-step regularization update); a group
+containing at least one moving body uses the iterative, per-step path.
 
 # Fields
 - `bodies::T` : Tuple of prescribed bodies.
 
 # Related functions
 - `point_count(body)` : Returns the sum of point counts across all sub-bodies.
-- `init_body_points!(points, body)` : Initialises points for each sub-body.
-- `update_body_points!(points, body, i, t)` : Updates points for each sub-body.
+- `body_ranges(body)` : Marker index range of each sub-body.
+- `init_body_points!(points, body)` : Initialises each sub-body's slice of `points`.
+- `update_body_points!(points, body, i, t)` : Updates each sub-body's slice of `points`.
 """
 struct GroupedPrescribedBody{T<:Tuple{Vararg{AbstractPrescribedBody}}} <:
        AbstractPrescribedBody
     bodies::T
 end
+
+"""
+    StaticGroupedBody
+
+A [`GroupedPrescribedBody`](@ref) whose sub-bodies are all static.
+"""
+const StaticGroupedBody = GroupedPrescribedBody{<:Tuple{Vararg{AbstractStaticBody}}}
 
 """
     point_count(body::GroupedPrescribedBody) -> Int
@@ -231,20 +253,32 @@ Return the total number of immersed-boundary points across all sub-bodies.
 point_count(body::GroupedPrescribedBody) = sum(point_count, body.bodies)
 
 """
+    body_ranges(body::GroupedPrescribedBody) -> Tuple of UnitRange
+
+Marker index range of each sub-body in the merged marker arrays.
+"""
+function body_ranges(body::GroupedPrescribedBody)
+    stops = accumulate(+, map(point_count, body.bodies))
+    map((b, s) -> (s - point_count(b) + 1):s, body.bodies, stops)
+end
+
+"""
     init_body_points!(points::BodyPoints, body::GroupedPrescribedBody)
 
-Initialise body points for each sub-body in the group.
+Initialise each sub-body on its own slice of `points`.
 """
 function init_body_points!(points::BodyPoints, body::GroupedPrescribedBody)
-    foreach(b -> init_body_points!(points, b), body.bodies)
+    foreach((b, r) -> init_body_points!(view(points, r), b), body.bodies, body_ranges(body))
 end
 
 """
     update_body_points!(points::BodyPoints, body::GroupedPrescribedBody, i, t)
 
-Update body points for each sub-body in the group at step `i` and time `t`.
+Update each sub-body on its own slice of `points` at step `i` and time `t`.
 """
 function update_body_points!(points::BodyPoints, body::GroupedPrescribedBody, i, t)
-    foreach(b -> update_body_points!(points, b, i, t), body.bodies)
+    foreach(
+        (b, r) -> update_body_points!(view(points, r), b, i, t), body.bodies, body_ranges(body)
+    )
 end
 

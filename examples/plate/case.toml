@@ -1,0 +1,33 @@
+# Flat plate at 12° angle of attack, Re = 400.
+
+[case]
+name = "plate"
+
+[flow]
+Re         = 400.0
+freestream = [1.0, 0.0]
+
+[grid]
+h      = 0.005
+limits = [[-1.0, 2.0], [-1.0, 1.0]]
+levels = 5
+
+[[body]]
+name   = "plate"
+shape  = "plate"
+length = 1.0
+angle  = -12.0                      # leading edge up → 12° angle of attack
+start  = [-0.25, 0.0]               # leading-edge position
+
+[solver]
+dt      = 0.001
+t_final = 40.0
+
+[initial_condition]
+type      = "vortex_blob"
+center    = [-0.75, 0.0]
+radius    = 0.25
+amplitude = 0.5
+
+[output]
+snapshot_every = 100

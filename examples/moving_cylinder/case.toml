@@ -1,0 +1,34 @@
+# Impulsively started cylinder translating at U = 1 through fluid at rest, Re = 40.
+# (Galilean counterpart of a static cylinder in a uniform stream.)
+
+[case]
+name = "moving_cylinder"
+
+[flow]
+Re         = 40.0
+freestream = [0.0, 0.0]             # quiescent fluid
+
+[grid]
+h      = 0.03
+limits = [[-15.0, 15.0], [-15.0, 15.0]]
+levels = 1
+
+[[body]]
+name   = "cylinder"
+shape  = "cylinder"
+radius = 0.5
+
+  [body.motion]
+  type     = "translate"            # x(t) = x_ref + velocity · t
+  velocity = [-1.0, 0.0]
+
+[solver]
+dt      = 0.0015                    # 0.05 h
+t_final = 4.0
+
+[reference]
+velocity = 1.0                      # body speed (freestream is zero)
+length   = 1.0
+
+[output]
+snapshot_every = 20

@@ -3,6 +3,8 @@ using Test
 import CUDA, AMDGPU
 
 include("tests.jl")
+include("case_files.jl")
+include("grouped_bodies.jl")
 
 arrays = [Array]
 # CUDA.functional() && push!(arrays, CUDA.CuArray)
@@ -13,6 +15,8 @@ arrays = [Array]
 @testset "Immersa.jl" verbose = true begin
     @testset "utils" Tests.test_utils()
     @testset "problems" Tests.test_problems()
+    @testset "grouped bodies" GroupedBodyTests.run_all()
+    @testset "case files" CaseFileTests.run_all()
     @testset "operators" begin
         @testset "$δ" for δ in (DeltaYang3S(),)
             Tests.test_delta_func(δ)

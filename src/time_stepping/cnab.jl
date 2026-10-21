@@ -109,6 +109,7 @@ There are two methods:
 - Updates `sol.reg` in-place for prescribed-motion bodies.
 """
 update_reg!(::CNAB, ::AbstractStaticBody, _) = nothing
+update_reg!(::CNAB, ::StaticGroupedBody, _) = nothing
 function update_reg!(sol::CNAB, ::AbstractPrescribedBody, i)
     update_weights!(sol.reg, sol.prob.grid, sol.points.x, i)
 end

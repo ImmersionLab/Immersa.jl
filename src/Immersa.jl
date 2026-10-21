@@ -35,6 +35,9 @@ using IterativeSolvers
 using FunctionWrappers: FunctionWrapper
 import Adapt
 import FFTW
+import TOML
+using Printf
+import HDF5: HDF5, h5open, create_group, create_dataset, attributes, write_attribute
 
 # ------------------------------------------------------------------------
 # Public API Exports
@@ -63,6 +66,9 @@ export set_time!,
 # Time integration and diagnostics
 export CNAB
 export log_timestep
+
+# Case files (SU2-style input): load/validate, build, run
+export load_case, build_case, build_solver, run_case, CaseConfigError
 
 # ------------------------------------------------------------------------
 # Internal Source Files
@@ -132,6 +138,14 @@ include("time_stepping/cnab.jl")
 
 # Post-processing: checkpoint I/O and surface force extraction
 include("post_proc/post_proc.jl")
+
+# Case files: parse/validate case.toml, build the problem, run it (see src/config/).
+include("config/schema.jl")
+include("config/geometry.jl")
+include("config/motion.jl")
+include("config/builders.jl")
+include("config/output.jl")
+include("config/driver.jl")
 
 """
     load!(filename::AbstractString, x)
