@@ -6,8 +6,6 @@ The package includes implementations of:
 - The immersed boundary projection method, both in primitive variables ([Taira & Colonius (2007)](https://doi.org/10.1016/j.jcp.2007.03.005)) and in the streamfunction-vorticity formulation ([Colonius & Taira (2008)](https://doi.org/10.1016/j.cma.2007.08.014))
 - The strongly coupled FSI formulation of [Goza & Colonius (2017)](https://doi.org/10.1016/j.jcp.2017.02.027)
 
-An implementation of the primitive-variable formulation proposed by [Kunihiko & Colonius (2007)](https://doi.org/10.1016/j.jcp.2007.03.005) is currently in progress.
-
 Prescribed structural deformations are supported in both 2D and 3D flows. Strongly coupled FSI is currently limited to 2D configurations. The solver uses far-field boundary conditions and represents immersed structures as point clouds.
 
 The code uses [KernelAbstractions.jl](https://juliagpu.github.io/KernelAbstractions.jl/stable/) for parallel execution on both CPUs and GPUs. It also supports automatic differentiation via [ForwardDiff.jl](https://juliadiff.org/ForwardDiff.jl/stable/) to compute sensitivities of solver outputs.
