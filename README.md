@@ -3,7 +3,7 @@
 *Immersa.jl* is a Julia package that implements immersed boundary methods for the numerical solution of strongly coupled fluid–structure interaction (FSI) problems governed by the incompressible Navier–Stokes equations.
 
 The package includes implementations of:
-- The immersed boundary method of [Colonius & Taira (2008)](https://doi.org/10.1016/j.cma.2007.08.014)
+- The immersed boundary projection method, both in primitive variables ([Taira & Colonius (2007)](https://doi.org/10.1016/j.jcp.2007.03.005)) and in the streamfunction-vorticity formulation ([Colonius & Taira (2008)](https://doi.org/10.1016/j.cma.2007.08.014))
 - The strongly coupled FSI formulation of [Goza & Colonius (2017)](https://doi.org/10.1016/j.jcp.2017.02.027)
 
 An implementation of the primitive-variable formulation proposed by [Kunihiko & Colonius (2007)](https://doi.org/10.1016/j.jcp.2007.03.005) is currently in progress.
