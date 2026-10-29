@@ -92,4 +92,4 @@ For major changes, consider opening an issue first to discuss your approach.
 ## References
 - Colonius, T., & Taira, K. (2008). A fast immersed boundary method using a nullspace approach and multi-domain far-field boundary conditions.
 - Goza, A., & Colonius, T. (2017). A strongly-coupled immersed-boundary method for thin elastic structures.
-- Kunihiko, T., & Colonius, T. (2007). An immersed boundary method for incompressible flows using primitive variables.
+- Taira, K., & Colonius, T. (2007). An immersed boundary method for incompressible flows using primitive variables.
