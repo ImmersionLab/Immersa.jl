@@ -1,4 +1,4 @@
-using Immersa: DeltaYang3S
+using Immersa: DeltaYang3S, DeltaRoma
 using Test
 import CUDA, AMDGPU
 
@@ -18,9 +18,10 @@ arrays = [Array]
     @testset "grouped bodies" GroupedBodyTests.run_all()
     @testset "case files" CaseFileTests.run_all()
     @testset "operators" begin
-        @testset "$δ" for δ in (DeltaYang3S(),)
+        @testset "$δ" for δ in (DeltaYang3S(), DeltaRoma())
             Tests.test_delta_func(δ)
         end
+        @testset "DeltaRoma moments" Tests.test_delta_roma()
     end
     @testset "operators $(nameof(array))" for array in arrays
         @testset "@loop" Tests.test_loop(array)

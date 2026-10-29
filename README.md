@@ -48,8 +48,14 @@ using Immersa
 run_case("examples/cylinder_Re200/case.toml")
 ```
 Results are written to `examples/cylinder_Re200/output/`: the force history in
-`history.csv`, and the force history plus field snapshots in `solution.h5`. The scripts in
-`examples/post_proc` convert `solution.h5` to VTK files for [ParaView](https://www.paraview.org/).
+`history.csv`, and the force history plus field snapshots in `solution.h5`. To view them in
+[ParaView](https://www.paraview.org/), convert `solution.h5` with the scripts in
+`examples/post_proc` (the files go to `output/paraview/`):
+```bash
+julia --project=examples -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'   # once
+julia --project=examples examples/post_proc/fluid_time_series.jl examples/cylinder_Re200/output/solution.h5
+julia --project=examples examples/post_proc/body_time_series.jl  examples/cylinder_Re200/output/solution.h5
+```
 
 ## How to Contribute
 Contributions are welcome and appreciated! If you would like to improve Immersa.jl, please follow these steps:

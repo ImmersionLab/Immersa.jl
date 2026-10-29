@@ -256,6 +256,19 @@ function test_delta_func(δ::Immersa.AbstractDeltaFunc)
     end
 end
 
+# Discrete conditions of Roma et al. (1999), for any marker offset x from the grid:
+# Σⱼ φ(x - j) = 1, Σⱼ (x - j) φ(x - j) = 0, Σⱼ φ(x - j)² = 1/2.
+function test_delta_roma()
+    δ = Immersa.DeltaRoma()
+    @test δ(0.5) ≈ 0.5 && δ(1.5) ≈ 0 && δ(1.6) == 0
+    for x in range(-0.5, 0.5, 41)
+        j = -3:3
+        @test sum(@. δ(x - j)) ≈ 1
+        @test abs(sum(@. (x - j) * δ(x - j))) < 1e-14
+        @test sum(@. δ(x - j)^2) ≈ 1 / 2
+    end
+end
+
 function test_nonlinear(
     array, grid::Grid{N}, u_true::LinearFunc{3}, ω_true::LinearFunc{3}, R
 ) where {N}

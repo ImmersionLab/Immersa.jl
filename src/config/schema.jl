@@ -283,7 +283,7 @@ function parse_solver(s, dir)
     formulation = get_string(s, "formulation", "FastIBPM"; allowed=("FastIBPM", "IBPM"))
     dt = get_float(s, "dt"; min=0, strict_min=true)
     t_final = get_float(s, "t_final"; min=0, strict_min=true)
-    delta = get_string(s, "delta", "Yang3S2"; allowed=("Yang3S", "Yang3S2"))
+    delta = get_string(s, "delta", "Yang3S2"; allowed=("Yang3S", "Yang3S2", "Roma"))
     ab_order = get_int(s, "ab_order", 2; min=1)
     preconditioner = get_string(s, "preconditioner", "auto"; allowed=("auto", "none", "jacobi"))
     # Absolute tolerance of the iterative coupling solve; absent → solver default.

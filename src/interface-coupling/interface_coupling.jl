@@ -1,5 +1,5 @@
 # Regularization machinery for the Eulerian–Lagrangian interface coupling:
-#   - Discrete delta functions (AbstractDeltaFunc, DeltaYang3S, DeltaYang3S2).
+#   - Discrete delta functions (AbstractDeltaFunc, DeltaYang3S, DeltaYang3S2, DeltaRoma).
 #   - The Reg operator and its weight computation (update_weights!).
 #   - The interpolation (E) and spreading/regularization (Eᵀ) operators.
 #
@@ -108,6 +108,31 @@ function (::DeltaYang3S2)(x::Float64)
         1.843201677 - 7.306134259e-2 * a7
     else
         0.0
+    end
+end
+
+"""
+    DeltaRoma <: AbstractDeltaFunc
+
+Three-point delta function of Roma, Peskin & Berger (1999), with compact support
+[-1.5, 1.5]; the one used by Taira & Colonius (2007) and Goza & Colonius (2017).
+- |r| ≤ 0.5       → (1 + √(1 - 3r²)) / 3
+- 0.5 < |r| ≤ 1.5 → (5 - 3|r| - √(1 - 3(1 - |r|)²)) / 6
+- |r| > 1.5       → 0
+`support(::DeltaRoma) = 2`: the stencil half-width must be an integer ≥ 1.5, so the
+outermost stencil points always get zero weight.
+"""
+struct DeltaRoma <: AbstractDeltaFunc end
+support(::DeltaRoma) = 2
+
+function (::DeltaRoma)(r::AbstractFloat)
+    a = abs(r)
+    if a <= 0.5
+        (1 + sqrt(1 - 3 * r^2)) / 3
+    elseif a <= 1.5
+        (5 - 3 * a - sqrt(max(zero(a), 1 - 3 * (1 - a)^2))) / 6
+    else
+        zero(r)
     end
 end
 

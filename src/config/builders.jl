@@ -128,7 +128,8 @@ file, if any).
 function build_solver(setup::CaseSetup)
     (; cfg, prob, backend) = setup
     s = cfg.solver
-    delta = s.delta == "Yang3S" ? DeltaYang3S() : DeltaYang3S2()
+    delta = s.delta == "Yang3S" ? DeltaYang3S() :
+            s.delta == "Roma"   ? DeltaRoma()   : DeltaYang3S2()
     deformable = prob.body isa GeometricNonlinearBody
     # Same BiCGStab settings as the original flag.jl example.
     coupler_args = deformable ? (; bicgstabl_args=(;)) : (;)
