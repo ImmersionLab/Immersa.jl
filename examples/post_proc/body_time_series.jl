@@ -147,8 +147,8 @@ end
 # Configuration
 # =============================================================================
 
-const FILENAME = get(ARGS, 1, "examples/moving_cylinder.h5")
-const OUTPUT_DIR = "examples/vtk_output_body/moving_cylinder"
+const FILENAME = get(ARGS, 1, "examples/moving_cylinder_Re40/output/solution.h5")
+const OUTPUT_DIR = "examples/vtk_output_body/moving_cylinder_Re40"
 const N_TIMESTEPS = typemax(Int)  # export all available snapshots
 
 # =============================================================================

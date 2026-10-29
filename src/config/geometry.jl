@@ -4,7 +4,8 @@ Body geometry generators for case files.
 Each generator returns `(x, ds)`: marker positions `Vector{SVector{N,Float64}}` and
 quadrature weights `Vector{Float64}` (arc length in 2D, area in 3D). Marker spacing
 is `spacing * h`, where `h` is the finest grid step and `spacing` the case-file value
-(default 2, as in all the original examples).
+(default 2 in 2D, as in all the original examples, and 1 in 3D); in 3D each marker
+then covers an area of about `(spacing * h)^2`.
 =#
 
 function body_geometry(b, h, dim)
@@ -12,6 +13,8 @@ function body_geometry(b, h, dim)
     g = b.geom
     if b.shape == "cylinder"
         cylinder_points(g.radius, g.center, target_ds)
+    elseif b.shape == "sphere"
+        sphere_points(g.radius, g.center, target_ds)
     elseif b.shape == "plate"
         plate_points(g.start, g.length, g.angle, target_ds)
     elseif b.shape == "naca4"
@@ -29,6 +32,25 @@ function cylinder_points(radius, center, target_ds)
     c = SVector{2}(center)
     x = [c + radius * SA[cos(θ), sin(θ)] for θ in range(0, 2π, n + 1)[1:(end-1)]]
     x, fill(S / n, n)
+end
+
+"""
+    sphere_points(radius, center, target_ds)
+
+Sphere surface markers on a Fibonacci (golden-angle) lattice: `n ≈ 4πr² / target_ds²`
+near-uniformly spaced points, each carrying the same area weight `4πr² / n`.
+"""
+function sphere_points(radius, center, target_ds)
+    A = 4π * radius^2
+    n = max(12, round(Int, A / target_ds^2))
+    c = SVector{3}(center)
+    golden = π * (3 - sqrt(5))
+    x = map(0:(n-1)) do k
+        z = 1 - (2k + 1) / n
+        ρ = sqrt(1 - z^2)
+        c + radius * SA[ρ * cos(golden * k), ρ * sin(golden * k), z]
+    end
+    x, fill(A / n, n)
 end
 
 # Open curve: `n` points spanning the full length, so spacing is L / (n - 1).

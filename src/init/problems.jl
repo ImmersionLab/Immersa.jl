@@ -498,8 +498,11 @@ end
 
 function initial_sol(
     backend, body::GeometricNonlinearBody{N,T}, sol_args, coupler_args; precond=:auto,
-    coupling_tol=nothing,  # FSI uses its own BiCGStab settings (`coupler_args`)
+    coupling_tol=nothing,  # FSI: tolerance of the fluid–structure iteration, ‖Δχ‖∞/‖χ‖∞
 ) where {N,T}
+    if !isnothing(coupling_tol)
+        coupler_args = (; coupler_args..., tol=T(coupling_tol))
+    end
     coupler = FsiCoupler(backend, body; coupler_args...)
     sol = CNAB(; sol_args..., coupler)
     set_time!(sol, 0)

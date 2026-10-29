@@ -2,7 +2,7 @@
 # (Galilean counterpart of a static cylinder in a uniform stream.)
 
 [case]
-name = "moving_cylinder"
+name = "moving_cylinder_Re40"
 
 [flow]
 Re         = 40.0

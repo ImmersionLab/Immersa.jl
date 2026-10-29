@@ -2,12 +2,12 @@
 Driver: run a case file end to end.
 
     julia> using Immersa
-    julia> run_case("examples/cylinder/case.toml")
+    julia> run_case("examples/cylinder_Re200/case.toml")
 
 or from the shell (see bin/immersa):
 
-    $ immersa examples/cylinder/case.toml
-    $ immersa --check examples/cylinder/case.toml   # validate + summary, no run
+    $ immersa examples/cylinder_Re200/case.toml
+    $ immersa --check examples/cylinder_Re200/case.toml   # validate + summary, no run
 =#
 
 """
@@ -21,11 +21,13 @@ function run_case(path::AbstractString; check::Bool=false)
     cfg = load_case(path)
     setup = build_case(cfg)
     print_summary(stdout, setup)
+    flush(stdout)
     check && return nothing
 
     t_build = time()
     sol = build_solver(setup)
     @printf("Solver ready in %.1f s\n\n", time() - t_build)
+    flush(stdout)
 
     out = open_output(setup, sol)
     o = cfg.output
@@ -52,9 +54,10 @@ end
 function log_step(sol, setup, wall)
     F = surface_force_sum(sol)
     ref = setup.cfg.reference
-    C = F / (0.5 * ref.velocity^2 * ref.length^(length(F) - 1))
+    C = F / (0.5 * ref.velocity^2 * ref.area)
     @printf("step %8d/%d | t = %9.4f | wall %8.1f s | C = %s\n",
         sol.i, setup.n_steps, sol.t, wall, join((@sprintf("%+.4f", c) for c in C), " "))
+    flush(stdout)  # visible immediately when stdout goes to a file (tail -f run.log)
 end
 
 function print_summary(io::IO, setup::CaseSetup)
@@ -66,6 +69,8 @@ function print_summary(io::IO, setup::CaseSetup)
     println(io, line)
     println(io, " Immersa case: ", cfg.case.name)
     println(io, " file:         ", cfg.file)
+    println(io, " backend:      ", cfg.case.backend, ", ", Threads.nthreads(), " Julia thread(s)",
+        Threads.nthreads() == 1 ? "  (start Julia with --threads=auto to use all cores)" : "")
     println(io, line)
     @printf(io, " %-16s %dD, Re = %g, freestream = %s%s\n", "Flow", cfg.dim, cfg.flow.Re,
         cfg.flow.freestream, isnothing(cfg.flow.file) ? "" : " (from $(basename(cfg.flow.file)))")
@@ -79,8 +84,10 @@ function print_summary(io::IO, setup::CaseSetup)
         ds = layout.ds[r]
         motion = isnothing(b.motion) ? (b.model == "deformable" ? "deformable" : "static") :
                  b.motion.type == "user" ? "user ($(basename(b.motion.file)))" : b.motion.type
+        # Marker spacing: the weight is a length in 2D and an area in 3D.
+        spacing = (sum(ds) / length(ds))^(1 / (cfg.dim - 1)) / h
         @printf(io, " %-16s %s, %d markers, ds/h = %.2f, %s\n", "Body \"$name\"",
-            b.shape, length(r), sum(ds) / length(ds) / h, motion)
+            b.shape, length(r), spacing, motion)
     end
     @printf(io, " %-16s %s, dt = %g, t_final = %g (%d steps), delta = %s\n", "Solver",
         s.formulation, s.dt, s.t_final, n_steps, s.delta)

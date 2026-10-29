@@ -186,6 +186,139 @@ function test_coupling_tol()
     @test abstol(replace(moving, "dt      = 0.01" => "dt = 0.01\ncoupling_tol = 1e-9")) == 1e-9
     ibpm = replace(BASE, "dt      = 0.01" => "dt = 0.01\nformulation = \"IBPM\"", "levels = 2" => "levels = 1")
     @test abstol(ibpm * CYLINDER) == Immersa.CNAB_Binv_Iterative{Float64}().abstol  # IBPM default unchanged
+    # Deformable bodies: the fluid–structure iteration tolerance.
+    flag = BASE * """
+    [[body]]
+    model  = "deformable"
+    shape  = "plate"
+    length = 1.0
+    start  = [-0.5, 0.0]
+      [body.structure]
+      mass                  = 0.1
+      bending_stiffness     = 0.01
+      extensional_stiffness = 100.0
+    """
+    fsi_tol(text) = mktempdir() do dir
+        build_solver(build_case(write_case(dir, text))).coupler.tol
+    end
+    @test fsi_tol(flag) == 1e-5
+    @test fsi_tol(replace(flag, "dt      = 0.01" => "dt = 0.01\ncoupling_tol = 1e-7")) == 1e-7
+end
+
+const BASE_3D = """
+[case]
+name = "tiny3d"
+
+[flow]
+Re         = 50.0
+freestream = [1.0, 0.0, 0.0]
+
+[grid]
+h      = 0.1
+limits = [[-1.2, 2.0], [-1.2, 1.2], [-1.2, 1.2]]
+levels = 2
+
+[[body]]
+name    = "sphere"
+shape   = "sphere"
+radius  = 0.4
+spacing = 2.0
+
+[solver]
+dt      = 0.02
+t_final = 0.06
+
+[reference]
+area = 0.5026548245743669
+
+[output]
+snapshot_every = 2
+log_every      = 0
+"""
+
+function test_sphere_geometry()
+    x, w = Immersa.sphere_points(0.5, [1.0, 2.0, 3.0], 0.05)
+    @test sum(w) ≈ 4π * 0.25
+    @test all(p -> norm(p - SA[1.0, 2.0, 3.0]) ≈ 0.5, x)
+    nn = [minimum(norm(x[i] - x[j]) for j in eachindex(x) if j != i) for i in eachindex(x)]
+    @test 0.8 * 0.05 < minimum(nn) && maximum(nn) < 1.1 * 0.05
+end
+
+function test_3d_static()
+    mktempdir() do dir
+        sol = quiet_run(write_case(dir, BASE_3D))
+        @test sol.i == 4
+        @test startswith(readlines(joinpath(dir, "output", "history.csv"))[1],
+            "step,t,sphere_Fx,sphere_Fy,sphere_Fz,sphere_Cx,sphere_Cy,sphere_Cz")
+        F = surface_force_sum(sol)
+        @test F[1] > 0                                   # drag along the flow
+        @test abs(F[2]) < 1e-2 * F[1] && abs(F[3]) < 1e-2 * F[1]  # ~0 by symmetry
+        h5open(joinpath(dir, "output", "solution.h5")) do f
+            for name in ("omega_x", "omega_y", "omega_z", "ux", "uy", "uz")
+                d = read(f["snapshots/$name"])
+                @test ndims(d) == 5 && size(d)[4:5] == (2, 2)   # levels, snapshots (steps 1, 3)
+                for (k, c) in enumerate(("x", "y", "z"))
+                    @test size(read(f["snapshots/coords/$name/$c"])) == (size(d, k), 2)
+                end
+            end
+            @test read(f["all/Cd"])[end] ≈ F[1] / (0.5 * 0.5026548245743669)
+        end
+    end
+end
+
+function test_3d_moving()
+    text = replace(BASE_3D, "freestream = [1.0, 0.0, 0.0]" => "freestream = [0.0, 0.0, 0.0]",
+        "spacing = 2.0" => """
+        spacing = 2.0
+          [body.motion]
+          type     = "translate"
+          velocity = [-1.0, 0.0, 0.0]
+        """)
+    mktempdir() do dir
+        sol = quiet_run(write_case(dir, text))
+        x_ref = build_case(joinpath(dir, "case.toml")).layout.x_ref
+        @test sol.points.x ≈ [x + SA[-sol.t, 0.0, 0.0] for x in x_ref]
+        @test all(==(SA[-1.0, 0.0, 0.0]), sol.points.u)
+        @test surface_force_sum(sol)[1] > 0                # body moves in -x, drag acts in +x
+    end
+end
+
+function test_tip_tracking()
+    text = BASE * """
+    [[body]]
+    name   = "flag"
+    model  = "deformable"
+    shape  = "plate"
+    length = 1.0
+    start  = [-0.5, 0.0]
+    track_tip = true
+
+      [body.structure]
+      mass                  = 0.1
+      bending_stiffness     = 0.01
+      extensional_stiffness = 100.0
+      initial_angle         = 2.0
+    """
+    mktempdir() do dir
+        sol = quiet_run(write_case(dir, text))
+        lines = readlines(joinpath(dir, "output", "history.csv"))
+        @test endswith(lines[1], ",flag_tip_x,flag_tip_y")
+        last_row = parse.(Float64, split(lines[end], ","))
+        @test last_row[end-1:end] ≈ collect(sol.points.x[end])   # trailing edge = last marker
+        h5open(joinpath(dir, "output", "solution.h5")) do f
+            x_tip = read(f["all/x_tip"])
+            @test size(x_tip) == (2, 6)
+            @test x_tip[:, end] ≈ collect(sol.points.x[end])
+        end
+    end
+    # Opt-in only: without the key there are no tip columns...
+    mktempdir() do dir
+        quiet_run(write_case(dir, replace(text, "track_tip = true\n" => "")))
+        @test !occursin("tip", readlines(joinpath(dir, "output", "history.csv"))[1])
+    end
+    # ...and it is rejected for shapes without a free end.
+    @test occursin("only available for shape = \"plate\"",
+        load_error(BASE * CYLINDER * "track_tip = true\n"))
 end
 
 function run_all()
@@ -195,6 +328,10 @@ function run_all()
     @testset "user motion file" test_user_motion()
     @testset "restart" test_restart()
     @testset "coupling tolerance" test_coupling_tol()
+    @testset "sphere geometry" test_sphere_geometry()
+    @testset "3D static sphere" test_3d_static()
+    @testset "3D moving sphere" test_3d_moving()
+    @testset "trailing-edge tracking" test_tip_tracking()
 end
 
 end # module

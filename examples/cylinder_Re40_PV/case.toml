@@ -1,0 +1,35 @@
+# Stationary cylinder, Re = 40, PRIMITIVE-VARIABLE (IBPM) formulation of
+# Taira & Colonius (2007), Case A: stretched grid with a uniform core around the body.
+# Discretization matched to their Case A: 150 × 150 cells over [-30, 30]²,
+# Δx_min = 0.04, Δt = 0.005, n_B = 78 body points.
+# Reference (Table 2, Case A): l/d = 2.33, a/d = 0.75, b/d = 0.60, θ = 54.1°, C_D = 1.55.
+
+[case]
+name = "cylinder_Re40_PV"
+
+[flow]
+Re         = 40.0
+freestream = [1.0, 0.0]
+
+[grid]
+type   = "stretched"
+h      = 0.04                            # Δx_min in the uniform core
+core   = [[-1.52, 1.52], [-1.52, 1.52]]  # uniform region (must contain the body);
+                                         #   76 core cells → even total, as in Case A
+growth = 1.126                           # with this core: exactly 150 cells over ±30.01
+extent = [[-30.0, 30.0], [-30.0, 30.0]]  # far field
+
+[[body]]
+name    = "cylinder"
+shape   = "cylinder"
+radius  = 0.5
+spacing = 1.007                          # Δs ≈ Δx (Taira & Colonius §3.3); gives n_B = 78
+
+[solver]
+formulation = "IBPM"
+dt          = 0.005
+t_final     = 60.0                       # long enough for the steady wake to settle
+
+[output]
+snapshot_every = 20
+fields         = ["omega", "u", "p"]
