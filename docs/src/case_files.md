@@ -42,7 +42,7 @@ which lists **every key** with its default, or copy one of the example cases in
 | `[[body]]`            | one block per body: shape, marker spacing, optional motion/structure  |
 | `[solver]`            | formulation, `dt`, `t_final`, delta function, restart                 |
 | `[initial_condition]` | optional vorticity blob to trigger shedding                           |
-| `[reference]`         | velocity and length for force coefficients                            |
+| `[reference]`         | velocity, length (2D) or area (3D) for force coefficients             |
 | `[output]`            | history/snapshot frequency, fields, checkpoints                       |
 
 All angles in a case file are in **degrees**; relative paths are relative to the case
@@ -77,6 +77,22 @@ signature). `StaticArrays` and `LinearAlgebra` are available in the file.
 | `output/solution.h5`         | force history and field snapshots, same layout as the original example scripts (readable by `examples/post_proc`) |
 | `output/restart_<step>.bin`  | checkpoints, for `[solver] restart_from`                       |
 | `output/case.toml`           | copy of the case file used                                     |
+
+## 3D cases
+
+A three-entry `freestream` makes the case 3D. Currently supported: FastIBPM, rigid
+bodies (`shape = "sphere"` or `points_file`), static or translating/oscillating
+(no 3D rotation yet). See `examples/sphere_Re100` and `examples/moving_sphere_Re100`.
+
+- Marker spacing defaults to `spacing = 1.0` (in units of `h`); each marker carries
+  an area weight of about `(spacing·h)²`.
+- Force coefficients use `[reference] area` (e.g. the frontal area πr² of a sphere).
+- A static body's coupling matrix is assembled once at start-up, with one 3D Poisson
+  solve per marker component: expect minutes to tens of minutes for ~10³ markers.
+- `solution.h5` stores every component on every level, each on its own staggered
+  points: `snapshots/omega_x|omega_y|omega_z|ux|uy|uz` with shape
+  `(n1, n2, n3, levels, n_snapshot)`, and their coordinates in
+  `snapshots/coords/<field>/x|y|z` with shape `(n_d, levels)`.
 
 ## API
 

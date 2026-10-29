@@ -244,10 +244,12 @@ function load_case(path::AbstractString)
     dim in (2, 3) || config_error("[flow] `freestream` must have 2 or 3 entries (sets the problem dimension)")
 
     solver = parse_solver(subsection(top, "solver"; required=true), dir)
+    dim == 3 && solver.formulation == "IBPM" &&
+        config_error("3D cases currently support only [solver] formulation = \"FastIBPM\"")
     grid = parse_grid(subsection(top, "grid"; required=true), dim, solver)
     bodies = parse_bodies(get(raw, "body", nothing), dim, dir, solver)
     ic = parse_initial_condition(subsection(top, "initial_condition"), dim, solver)
-    reference = parse_reference(subsection(top, "reference"))
+    reference = parse_reference(subsection(top, "reference"), dim)
     output = parse_output(subsection(top, "output"), dir, solver)
 
     CaseConfig(file, dir, dim, case, flow, grid, bodies, solver, ic, reference, output)
@@ -322,7 +324,11 @@ end
 # --- [[body]] ---------------------------------------------------------------
 
 const SHAPES_2D = ("cylinder", "plate", "naca4", "points_file")
-const SHAPES_3D = ("points_file",)  # sphere etc. come with the 3D work
+const SHAPES_3D = ("sphere", "points_file")
+
+# Default marker spacing ds/h: 2 in 2D (as in all original examples); 1 in 3D, where
+# markers are spaced more tightly to keep the surface from leaking.
+default_spacing(dim) = dim == 2 ? 2.0 : 1.0
 
 function parse_bodies(raw, dim, dir, solver)
     isnothing(raw) && config_error("at least one [[body]] section is required")
@@ -351,7 +357,12 @@ function parse_body(s, k, dim, dir)
     model = get_string(s, "model", "rigid"; allowed=("rigid", "deformable"))
     shapes = dim == 2 ? SHAPES_2D : SHAPES_3D
     shape = get_string(s, "shape"; allowed=shapes)
-    spacing = get_float(s, "spacing", 2.0; min=0, strict_min=true)
+    spacing = get_float(s, "spacing", default_spacing(dim); min=0, strict_min=true)
+    # Record the free end (last marker) of a plate every history step.
+    track_tip = get_bool(s, "track_tip", false)
+    track_tip && shape != "plate" &&
+        config_error("[$(s.name)] `track_tip` is only available for shape = \"plate\" " *
+                     "(the tip is the plate's free end, its last marker)")
 
     geom = parse_shape(s, shape, dim, dir)
 
@@ -363,11 +374,11 @@ function parse_body(s, k, dim, dir)
         isnothing(motion) || config_error("[$(s.name)] a deformable body cannot have a [body.motion]")
     end
     check_unknown_keys(s)
-    (; name, model, shape, spacing, geom, motion, structure)
+    (; name, model, shape, spacing, track_tip, geom, motion, structure)
 end
 
 function parse_shape(s, shape, dim, dir)
-    if shape == "cylinder"
+    if shape == "cylinder" || shape == "sphere"
         radius = get_float(s, "radius"; min=0, strict_min=true)
         center = get_vector(s, "center", zeros(dim); len=dim)
         (; radius, center)
@@ -472,12 +483,20 @@ end
 
 # --- [reference] ------------------------------------------------------------
 
-function parse_reference(s)
-    isnothing(s) && return (; velocity=1.0, length=1.0)
+# Coefficients are C = F / (½ U² A). The reference "area" A is a length in 2D (per
+# unit span) and an area in 3D; it defaults to `length^(dim - 1)`.
+function parse_reference(s, dim)
+    s = something(s, Section("reference", Dict{String,Any}()))
     velocity = get_float(s, "velocity", 1.0; min=0, strict_min=true)
     length_ = get_float(s, "length", 1.0; min=0, strict_min=true)
+    area = if haskey(s, "area")
+        dim == 3 || config_error("[reference] `area` is for 3D cases; in 2D set `length`")
+        get_float(s, "area"; min=0, strict_min=true)
+    else
+        length_^(dim - 1)
+    end
     check_unknown_keys(s)
-    (; velocity, length=length_)
+    (; velocity, length=length_, area)
 end
 
 # --- [output] ---------------------------------------------------------------

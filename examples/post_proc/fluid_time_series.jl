@@ -80,10 +80,10 @@ silence(f, quiet = true) = quiet ? (redirect_stdout(devnull) do; redirect_stderr
 # Configuration
 # =============================================================================
 
-const FILENAME = get(ARGS, 1, "examples/moving_cylinder.h5")
+const FILENAME = get(ARGS, 1, "examples/moving_cylinder_Re40/output/solution.h5")
 const N_TIMESTEPS = typemax(Int)  # export all available snapshots
 const LEVEL = 1
-const OUTPUT_DIR = "examples/vtk_output_fluid/moving_cylinder/level_$(LEVEL)"
+const OUTPUT_DIR = "examples/vtk_output_fluid/moving_cylinder_Re40/level_$(LEVEL)"
 const QUIET_VTK = true
 
 # =============================================================================

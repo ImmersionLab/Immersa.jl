@@ -46,18 +46,26 @@ levels = 1                             # multi-domain levels; each doubles the e
 [[body]]
 name    = "body1"           # used in history.csv column names; default body1, body2, ...
 model   = "rigid"           # rigid | deformable
-shape   = "cylinder"        # (required) cylinder | plate | naca4 | points_file
-spacing = 2.0               # marker spacing ds / h (not used by points_file)
+shape   = "cylinder"        # (required) 2D: cylinder | plate | naca4 | points_file
+                            #            3D: sphere | points_file
+spacing = 2.0               # marker spacing ds / h (not used by points_file);
+                            #   default 2.0 in 2D, 1.0 in 3D
 
 # --- shape = "cylinder"
 radius = 0.5                # (required)
 center = [0.0, 0.0]
+
+# --- shape = "sphere" (3D): near-uniform markers, equal area weights
+# radius = 0.5              # (required)
+# center = [0.0, 0.0, 0.0]
 
 # --- shape = "plate" (straight line; give `center` OR `start`)
 # length = 1.0              # (required)
 # angle  = 0.0              # counter-clockwise from +x
 # center = [0.0, 0.0]       # mid-point
 # start  = [-0.5, 0.0]      # leading end instead of the mid-point
+# track_tip = false         # true: record the free end (last marker) every history step
+#                           #   → history.csv <name>_tip_x/_y, solution.h5 all/x_tip
 
 # --- shape = "naca4"
 # code                 = "0012"     # (required) 4-digit NACA code
@@ -113,15 +121,19 @@ center = [0.0, 0.0]
 #   initial_angle         = 0.0      # initial deflection
 
 [solver]
-formulation    = "FastIBPM" # FastIBPM (streamfunction-vorticity) | IBPM (primitive variables)
+formulation    = "FastIBPM" # FastIBPM (streamfunction-vorticity, the default if omitted)
+                            #   | IBPM (primitive variables)
 dt             = 0.002      # (required)
 t_final        = 10.0       # (required)
 delta          = "Yang3S2"  # Yang3S | Yang3S2: discrete delta function
 ab_order       = 2          # Adams-Bashforth order for the nonlinear term
 preconditioner = "auto"     # IBPM only: auto | none | jacobi
-# coupling_tol = 1e-7       # absolute tolerance of the iterative body-coupling solve
-#                           #   (moving bodies with FastIBPM: default 1e-7, BiCGStab;
-#                           #    IBPM: default 1e-5, CG; unused for FastIBPM static bodies)
+# coupling_tol = 1e-7       # tolerance of the iterative body coupling:
+#                           #   rigid moving bodies: absolute tolerance of the force solve
+#                           #     (FastIBPM: default 1e-7, BiCGStab; IBPM: default 1e-5, CG;
+#                           #      unused for FastIBPM static bodies)
+#                           #   deformable bodies: fluid–structure iteration stops when
+#                           #     ‖Δχ‖∞/‖χ‖∞ < coupling_tol (default 1e-5)
 # restart_from = "output/restart_0001000.bin"   # FastIBPM, rigid bodies
 
 [initial_condition]
@@ -130,9 +142,10 @@ type = "none"               # none | vortex_blob (2D, FastIBPM: kicks off vortex
 # radius    = 0.25
 # amplitude = 0.5
 
-[reference]                 # force coefficients C = F / (½ U² L)   (3D: L² as area)
+[reference]                 # force coefficients C = F / (½ U² A)
 velocity = 1.0
-length   = 1.0
+length   = 1.0              # 2D: A = length (per unit span)
+# area   = 0.785            # 3D only: A, e.g. frontal area π r² of a sphere (default length²)
 
 [output]
 directory      = "output"

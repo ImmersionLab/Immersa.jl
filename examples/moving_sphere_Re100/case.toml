@@ -1,0 +1,42 @@
+# Impulsively started sphere translating at U = 1 through fluid at rest, Re = 100
+# (3D, FastIBPM). Galilean counterpart of examples/sphere_Re100: same sphere, same Re, so
+# its drag should approach the static sphere's.
+# Coarse grid: meant to show the 3D moving-body setup runs, not for validation.
+
+[case]
+name = "moving_sphere_Re100"
+
+[flow]
+Re         = 100.0
+freestream = [0.0, 0.0, 0.0]        # quiescent fluid; three entries → 3D
+
+[grid]
+h      = 0.05
+limits = [[-4.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]]   # room ahead of the sphere (it moves in -x)
+levels = 3
+
+[[body]]
+name    = "sphere"
+shape   = "sphere"
+radius  = 0.5
+center  = [0.0, 0.0, 0.0]
+spacing = 1.5                       # coarser than the static sphere (1.0) to keep the
+                                    #   per-step iterative coupling solve affordable
+
+  [body.motion]
+  type     = "translate"              # x(t) = x_ref + velocity · t
+  velocity = [-1.0, 0.0, 0.0]
+
+[solver]
+dt           = 0.01
+t_final      = 1.0
+coupling_tol = 1e-5                 # looser than the 1e-7 default: ~30% faster per step
+
+[reference]                         # C = F / (½ U² A)
+velocity = 1.0                      # body speed (freestream is zero)
+length   = 1.0                      # sphere diameter
+area     = 0.7853981633974483       # frontal area π r²
+
+[output]
+snapshot_every = 50
+log_every      = 10

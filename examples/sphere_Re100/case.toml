@@ -1,0 +1,35 @@
+# Static sphere in a uniform flow, Re = 100 (3D, FastIBPM).
+# Reference: steady axisymmetric wake, C_D ≈ 1.09 (Johnson & Patel 1999).
+# Coarse grid: meant to show the 3D setup runs, not to reproduce C_D accurately.
+
+[case]
+name = "sphere_Re100"
+
+[flow]
+Re         = 100.0
+freestream = [1.0, 0.0, 0.0]        # three entries → 3D
+
+[grid]
+h      = 0.05
+limits = [[-1.5, 4.5], [-1.5, 1.5], [-1.5, 1.5]]
+levels = 3
+
+[[body]]
+name    = "sphere"
+shape   = "sphere"
+radius  = 0.5
+center  = [0.0, 0.0, 0.0]
+spacing = 1.0                       # marker spacing ds / h (3D default)
+
+[solver]
+dt      = 0.01
+t_final = 15.0                      # long enough for the wake to settle
+
+[reference]                         # C = F / (½ U² A)
+velocity = 1.0
+length   = 1.0                      # sphere diameter
+area     = 0.7853981633974483       # frontal area π r²
+
+[output]
+snapshot_every = 50
+log_every      = 10

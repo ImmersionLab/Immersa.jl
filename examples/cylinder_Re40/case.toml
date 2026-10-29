@@ -1,0 +1,35 @@
+# Stationary cylinder, Re = 40, STREAMFUNCTION-VORTICITY (FastIBPM) formulation.
+# Steady-wake counterpart of examples/cylinder_Re40_PV (primitive variables), with the
+# same resolution as Taira & Colonius (2007) Case A for a direct comparison:
+# Δx = 0.04 on the finest level, Δt = 0.005, n_B = 78 body points, t_final = 60.
+# FastIBPM uses a uniform multi-level grid instead of the stretched one.
+# Reference (Taira & Colonius 2007, Table 2, Case A): l/d = 2.33, a/d = 0.75,
+# b/d = 0.60, θ = 54.1°, C_D = 1.55.
+
+[case]
+name = "cylinder_Re40"
+
+[flow]
+Re         = 40.0
+freestream = [1.0, 0.0]
+
+[grid]
+h      = 0.04                       # = Δx_min of Case A
+limits = [[-1.0, 4.0], [-2.0, 2.0]] # finest level: the wake bubble (to x ≈ 2.9) stays on it
+levels = 5                          # full domain ≈ [-38.5, 41.5] × [-32, 32]
+
+[[body]]
+name    = "cylinder"
+shape   = "cylinder"
+radius  = 0.5
+spacing = 1.007                     # Δs ≈ Δx, as in Case A: n_B = 78
+
+[solver]
+formulation = "FastIBPM"
+dt          = 0.005                 # = Case A
+t_final     = 60.0                  # same as the primitive-variable run
+
+[output]
+snapshot_every = 200                # 61 snapshots
+fields         = ["omega", "u"]
+log_every      = 1000

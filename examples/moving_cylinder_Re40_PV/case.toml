@@ -1,0 +1,47 @@
+# Impulsively started cylinder translating at U = 1 through fluid at rest, Re = 40,
+# PRIMITIVE-VARIABLE (IBPM) formulation: PV counterpart of examples/moving_cylinder_Re40 (SV).
+# Same physics and discretization near the body as the SV case: Δx_min = h = 0.03, same
+# markers (spacing 2h → 52), Δt = 0.0015, t_final = 4, same coupling tolerance (1e-7),
+# same outer limits [-15, 15]². Instead of the SV uniform 1000 × 1000 grid, a stretched
+# grid: uniform core around the whole path of the cylinder (x = 0 → -4) and its wake,
+# geometric growth outside it.
+# Reference: Taira & Colonius (2007), Fig. 10 (drag history, Re = 40).
+
+[case]
+name = "moving_cylinder_Re40_PV"
+
+[flow]
+Re         = 40.0
+freestream = [0.0, 0.0]             # quiescent fluid
+
+[grid]
+type   = "stretched"
+h      = 0.03                       # Δx_min in the core = SV h
+core   = [[-5.04, 1.5], [-1.5, 1.5]]  # uniform region: 218 × 100 cells, contains the
+                                      #   cylinder over its whole path and the near wake
+growth = 1.059                      # chosen so all four edges land within 0.11 of ±15:
+                                    #   x [-15.11, 15.09], y [-15.09, 15.09]; 327 × 214 cells
+extent = [[-15.0, 15.0], [-15.0, 15.0]]  # = SV domain limits
+
+[[body]]
+name   = "cylinder"
+shape  = "cylinder"
+radius = 0.5
+
+  [body.motion]
+  type     = "translate"            # x(t) = x_ref + velocity · t
+  velocity = [-1.0, 0.0]
+
+[solver]
+formulation  = "IBPM"
+dt           = 0.0015               # = SV
+t_final      = 4.0
+coupling_tol = 1e-7                 # = the SV (FastIBPM moving) default; IBPM default is 1e-5
+
+[reference]
+velocity = 1.0                      # body speed (freestream is zero)
+length   = 1.0
+
+[output]
+snapshot_every = 20
+fields         = ["omega", "u", "p"]

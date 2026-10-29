@@ -1,8 +1,8 @@
 # =====================================================================
 #  Immersa case file — flow past a circular cylinder, Re = 200
 #
-#  Run:    julia --project bin/immersa.jl examples/cylinder/case.toml
-#     or:  julia> using Immersa; run_case("examples/cylinder/case.toml")
+#  Run:    bin/immersa examples/cylinder_Re200/case.toml
+#     or:  julia> using Immersa; run_case("examples/cylinder_Re200/case.toml")
 #
 #  Units are non-dimensional; ALL ANGLES ARE IN DEGREES.
 #  Relative paths are relative to this file's folder.
@@ -35,7 +35,9 @@ spacing = 2.0                       # marker spacing ds / h
 [solver]
 formulation = "FastIBPM"            # FastIBPM | IBPM
 dt          = 0.002
-t_final     = 1.0
+t_final     = 100.0                 # shedding onset + periodic regime to average over
+                                    # (reference, e.g. Liu et al. 1998: mean C_D ≈ 1.31,
+                                    #  C_L amplitude ≈ 0.69, St ≈ 0.19)
 delta       = "Yang3S2"             # Yang3S | Yang3S2
 
 [initial_condition]                 # small vorticity blob to trigger shedding
@@ -51,7 +53,7 @@ length   = 1.0                      # cylinder diameter
 [output]
 directory      = "output"
 history_every  = 1                  # forces → history.csv and solution.h5
-snapshot_every = 10                 # fields → solution.h5 (0 = never)
+snapshot_every = 500                # fields → solution.h5 (0 = never); 100 snapshots ≈ 0.5 GB
 fields         = ["omega", "u"]     # + "p" with IBPM
-log_every      = 50
+log_every      = 1000
 restart_every  = 0                  # checkpoint every N steps (0 = off)
