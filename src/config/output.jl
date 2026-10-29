@@ -5,13 +5,15 @@ Case output.
                          `history_every` steps — readable by any tool. Plates with
                          `track_tip = true` also get their free-end position,
                          `<name>_tip_x`, `<name>_tip_y`.
-  <output>/solution.h5   same layout as the original example scripts, so the
-                         scripts in `examples/post_proc` work unchanged:
+  <output>/solution.h5   read by the ParaView export scripts in `examples/post_proc`:
                            body/points, body/lengths            reference markers
+                           body/names, ranges, closed           one entry per body
                            all/t, all/Cd, all/Cl, all/force     total-force history
                            all/x_tip[_<name>]                   tracked plate tips
                            snapshots/t, omega, ux, uy, [p],     field snapshots (2D)
                            x_coords, y_coords, body_points
+                           snapshots/force                      force on each marker
+                                                                  (N, n_markers, n_snapshot)
                          In 3D the snapshots hold every component on every level,
                          each on its own staggered points:
                            snapshots/omega_x, omega_y, omega_z, ux, uy, uz
@@ -76,6 +78,7 @@ function open_output(setup::CaseSetup, sol::CNAB{N,T}) where {N,T}
     bg["lengths"] = layout.ds
     bg["names"] = layout.names
     bg["ranges"] = reduce(hcat, [[first(r), last(r)] for r in layout.ranges])
+    bg["closed"] = Int8[_closed_outline(b, N) for b in cfg.bodies]
 
     ag = create_group(h5, "all")
     create_dataset(ag, "t", T, (n_hist,))
@@ -90,6 +93,7 @@ function open_output(setup::CaseSetup, sol::CNAB{N,T}) where {N,T}
         sg = create_group(h5, "snapshots")
         create_dataset(sg, "t", T, (n_snap,))
         create_dataset(sg, "body_points", T, (N, length(layout.x_ref), n_snap))
+        create_dataset(sg, "force", T, (N, length(layout.x_ref), n_snap))
         ω_buf = create_field_datasets!(sg, sol, o.fields, n_snap)
     end
 
@@ -109,6 +113,14 @@ function open_output(setup::CaseSetup, sol::CNAB{N,T}) where {N,T}
         h5, history, layout, i_first, n_steps, o.history_every, o.snapshot_every,
         o.fields, coef_scale, f_host, ω_buf, tips,
     )
+end
+
+# Does the 2D outline join its last marker back to the first? (3D bodies: no outline.)
+function _closed_outline(b, N)
+    N == 3 && return false
+    b.shape == "plate" && return false
+    b.shape == "points_file" && return b.geom.closed
+    true  # cylinder, naca4
 end
 
 function history_header(layout::BodyLayout, N, tips=Pair{String,Int}[])
@@ -246,6 +258,10 @@ function write_snapshot!(out::CaseOutput{N}, sol::CNAB, k) where {N}
     sg = out.h5["snapshots"]
     sg["t"][k] = sol.t
     sg["body_points"][:, :, k] = reinterpret(reshape, Float64, Array(sol.points.x))
+    f_dev = similar(sol.f_tilde)
+    surface_force!(f_dev, sol)
+    copyto!(out.f_host, f_dev)
+    sg["force"][:, :, k] = reinterpret(reshape, Float64, out.f_host)
 
     st = sol.state
     nv(a) = Array(OffsetArrays.no_offset_view(a))

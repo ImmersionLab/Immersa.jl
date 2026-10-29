@@ -125,7 +125,8 @@ formulation    = "FastIBPM" # FastIBPM (streamfunction-vorticity, the default if
                             #   | IBPM (primitive variables)
 dt             = 0.002      # (required)
 t_final        = 10.0       # (required)
-delta          = "Yang3S2"  # Yang3S | Yang3S2: discrete delta function
+delta          = "Yang3S2"  # discrete delta function, support radius in cells:
+                            #   Yang3S2 (3) | Yang3S (2) | Roma (1.5, Roma et al. 1999)
 ab_order       = 2          # Adams-Bashforth order for the nonlinear term
 preconditioner = "auto"     # IBPM only: auto | none | jacobi
 # coupling_tol = 1e-7       # tolerance of the iterative body coupling:

@@ -74,9 +74,32 @@ signature). `StaticArrays` and `LinearAlgebra` are available in the file.
 | File                         | Contents                                                       |
 |:-----------------------------|:---------------------------------------------------------------|
 | `output/history.csv`         | step, time, force and coefficient per body (+ total)           |
-| `output/solution.h5`         | force history and field snapshots, same layout as the original example scripts (readable by `examples/post_proc`) |
+| `output/solution.h5`         | force history, field snapshots, and the body markers and the force on each marker at every snapshot |
 | `output/restart_<step>.bin`  | checkpoints, for `[solver] restart_from`                       |
 | `output/case.toml`           | copy of the case file used                                     |
+| `output/paraview/`           | ParaView files, written by the `examples/post_proc` scripts (below) |
+
+### ParaView
+
+The scripts in `examples/post_proc` convert `solution.h5` to ParaView files, by default
+in `paraview/` next to it:
+
+```bash
+julia --project=examples examples/post_proc/fluid_time_series.jl examples/cylinder_Re200/output/solution.h5
+julia --project=examples examples/post_proc/body_time_series.jl  examples/cylinder_Re200/output/solution.h5
+```
+
+Open `fluid_level1.pvd` and `body.pvd` in ParaView.
+
+- **Fluid:** one rectilinear grid per snapshot. In 2D it holds vorticity on the nodes
+  and velocity (and `p` for IBPM) at the cell centres; in 3D velocity and vorticity at
+  the cell centres. Only the finest level is exported by default; use `--levels=1,2`
+  or `--levels=all` for the others (level 1 = finest).
+- **Body:** the markers at each snapshot, with the force of the fluid on each marker
+  and the body number. In 2D each body is a polyline (open for plates); in 3D a
+  cloud of points.
+- `--out=DIR` writes somewhere else. The first time, set up the environment with
+  `julia --project=examples -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'`.
 
 ## 3D cases
 
