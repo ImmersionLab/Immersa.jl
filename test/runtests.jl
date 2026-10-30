@@ -1,8 +1,10 @@
-using Immersa: DeltaYang3S
+using Immersa: DeltaYang3S, DeltaRoma
 using Test
 import CUDA, AMDGPU
 
 include("tests.jl")
+include("case_files.jl")
+include("grouped_bodies.jl")
 
 arrays = [Array]
 # CUDA.functional() && push!(arrays, CUDA.CuArray)
@@ -13,10 +15,13 @@ arrays = [Array]
 @testset "Immersa.jl" verbose = true begin
     @testset "utils" Tests.test_utils()
     @testset "problems" Tests.test_problems()
+    @testset "grouped bodies" GroupedBodyTests.run_all()
+    @testset "case files" CaseFileTests.run_all()
     @testset "operators" begin
-        @testset "$δ" for δ in (DeltaYang3S(),)
+        @testset "$δ" for δ in (DeltaYang3S(), DeltaRoma())
             Tests.test_delta_func(δ)
         end
+        @testset "DeltaRoma moments" Tests.test_delta_roma()
     end
     @testset "operators $(nameof(array))" for array in arrays
         @testset "@loop" Tests.test_loop(array)
@@ -25,6 +30,15 @@ arrays = [Array]
             Tests.test_nonlinear
             Tests.test_rot
             Tests.test_curl
+            Tests.test_divergence
+            Tests.test_gradient
+            Tests.test_velocity_boundary
+            Tests.test_laplacian
+            Tests.test_laplacian_bc
+            Tests.test_divergence_bc
+            Tests.test_Ainv
+            Tests.test_Q
+            Tests.test_B
             Tests.test_laplacian_inv
             Tests.test_multidomain_coarsen
             Tests.test_multidomain_interpolate

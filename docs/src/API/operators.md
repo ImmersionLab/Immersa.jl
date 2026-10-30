@@ -30,6 +30,7 @@ Immersa.multidomain_poisson!
 Immersa.AbstractDeltaFunc
 Immersa.DeltaYang3S
 Immersa.DeltaYang3S2
+Immersa.DeltaRoma
 Immersa.Reg
 Immersa.update_weights!
 Immersa.interpolate_body!

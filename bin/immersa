@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Run an Immersa case file.
+#
+#   bin/immersa examples/cylinder_Re200/case.toml
+#   bin/immersa --check examples/cylinder_Re200/case.toml   # validate + summary only
+#
+# Uses this repository's Julia project. Add bin/ to your PATH to call `immersa`
+# from any folder.
+#
+# Threads: Julia runs single-threaded unless told otherwise, and the solver's
+# kernels and FFTs use Julia's threads. Default: 8 threads. To change it:
+#   JULIA_NUM_THREADS=4 bin/immersa examples/cylinder_Re200/case.toml      # fewer
+#   JULIA_NUM_THREADS=auto bin/immersa examples/cylinder_Re200/case.toml   # all cores
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+THREADS="${JULIA_NUM_THREADS:-8}"
+exec julia --project="$ROOT" --startup-file=no --threads="$THREADS" \
+    -e 'using Immersa; exit(Immersa.main(ARGS))' -- "$@"

@@ -1,0 +1,49 @@
+# Flexible flag clamped at its leading edge, Re = 1000, M_ρ = 0.075, K_B = 0.0001,
+# Fr = 0 (no gravity). Validation against Goza & Colonius (2017),
+# doi:10.1016/j.jcp.2017.02.027, Table 1: trailing-edge transverse displacement
+#   amplitude ±0.097, frequency St = 0.94  (Connell et al.: ±0.096, 0.93;
+#   Gurugubelli et al.: ±0.098, 0.95).
+# The trailing edge is tracked every step: history.csv columns flag_tip_x, flag_tip_y.
+# Discretization matched to the paper: finest domain [-0.2, 1.8] × [-0.3, 0.3],
+# h = 0.0025, Δt = 0.0006, 5 levels → full domain [-15.2, 16.8] × [-4.8, 4.8],
+# 800 × 240 × 5 = 960,000 points (the paper reports h = 0.003 changes Table 1 by < 1%).
+
+[case]
+name = "flag"
+
+[flow]
+Re         = 1000.0
+freestream = [1.0, 0.0]
+ramp_time  = 0.1                    # smooth start: U(t) = s(2 - s) U, s = t / ramp_time
+
+[grid]
+h      = 0.0025
+limits = [[-0.2, 1.8], [-0.3, 0.3]]
+levels = 5
+
+[[body]]
+name  = "flag"
+model = "deformable"
+shape = "plate"
+length = 1.0
+start  = [0.0, 0.0]
+track_tip = true                    # record the trailing edge every step
+
+  [body.structure]
+  mass                  = 0.075     # M_ρ
+  bending_stiffness     = 0.0001    # K_B
+  extensional_stiffness = 1000.0
+  clamped               = true      # leading edge fixed
+  initial_angle         = 1.0       # degrees, initial deflection
+
+[solver]
+dt      = 0.0006
+delta   = "Roma"                   # Roma et al. (1999), as in Goza & Colonius (2017)
+t_final = 15.0                      # flapping saturates around t ≈ 7-8; the rest is
+                                    #   the limit cycle to average amplitude/frequency over
+
+[output]
+directory      = "output"
+snapshot_every = 100                # 250 snapshots of ω ≈ 1.3 GB
+fields         = ["omega"]
+log_every      = 500
