@@ -25,7 +25,7 @@ makedocs(
 )
 
 deploydocs(
-    repo      = "github.com/NUFgroup/Immersa.jl",
+    repo      = "github.com/ImmersionLab/Immersa.jl",
     devbranch = "main",
 )
 
