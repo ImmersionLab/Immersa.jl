@@ -239,10 +239,10 @@ function Q_matrix(::CPU, body::GeometricNonlinearBody{N,T}) where {N,T}
             F_e = SA[
                 ds0 / 3 * fx1 + ds0 / 6 * fx2
                 26 * ds0 / 70 * fy1 + 9 * ds0 / 70 * fy2
-                -11 * ds0^2 / 210 * fy1 - ds0^2 * 13 / 420 * fy2
+                11 * ds0^2 / 210 * fy1 + ds0^2 * 13 / 420 * fy2
                 ds0 / 6 * fx1 + ds0 / 3 * fx2
                 9 * ds0 / 70 * fy1 + 26 * ds0 / 70 * fy2
-                13 * ds0^2 / 420 * fy1 + ds0^2 * 11 / 210 * fy2
+                -13 * ds0^2 / 420 * fy1 - ds0^2 * 11 / 210 * fy2
             ]
 
             @views y[el_ind] .+= F_e
